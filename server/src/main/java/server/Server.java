@@ -57,6 +57,18 @@ public class Server {
             c.sendMsg(message);
         }
     }
+    public void directMsg(ClientHandler sender, String receiver, String msg){
+        String directMessage = String.format("from [ %s ]: %s", sender.getNickname(), msg);
+        String message = String.format("to [ %s ]: %s", receiver, msg);
+        for (ClientHandler c : clients) {
+            if (c.getNickname().equals(receiver)){
+                c.sendMsg(directMessage);
+                sender.sendMsg(message);
+                return;
+            }
+        }
+        sender.sendMsg("This user is not found");
+    }
 
     public void subscribe(ClientHandler clientHandler){
         clients.add(clientHandler);
