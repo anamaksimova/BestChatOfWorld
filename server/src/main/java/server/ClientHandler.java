@@ -56,13 +56,22 @@ public class ClientHandler {
                     //цикл работы
                     while (true) {
                         String str = in.readUTF();
+                        if (str.startsWith("/")) {
+                            if (str.equals(Command.END)) {
+                                out.writeUTF(Command.END);
+                                break;
+                            }
+                            if (str.startsWith(Command.DIRECT)) {
+                                String[] token = str.split("\\s", 3);
+                                if (token.length < 3) {
+                                    continue;
+                                }
+                                server.directMsg(this, token[1], token[2]);
+                            }
+                        } else {
 
-                        if (str.equals(Command.END)) {
-                            out.writeUTF(Command.END);
-                            break;
+                            server.broadcastMsg(this, str);
                         }
-
-                        server.broadcastMsg(this, str);
                     }
                 } catch (RuntimeException e) {
                     System.out.println(e.getMessage());
