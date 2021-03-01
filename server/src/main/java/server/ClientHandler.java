@@ -14,6 +14,7 @@ public class ClientHandler {
     private DataOutputStream out;
 
     private String nickname;
+    private String login;
 
     public ClientHandler(Server server, Socket socket) {
         try {
@@ -27,11 +28,12 @@ public class ClientHandler {
                     // цикл аутентификации
                     while (true) {
                         String str = in.readUTF();
-
+                        //если команда отключиться
                         if (str.equals(Command.END)) {
                             out.writeUTF(Command.END);
                             throw new RuntimeException("Клиент захотел отключиться");
                         }
+                        //если команда аутентификация
                         if (str.startsWith(Command.AUTH)) {
                             String[] token = str.split("\\s", 3);
                             if (token.length < 3) {
@@ -39,18 +41,36 @@ public class ClientHandler {
                             }
                             String newNick = server.getAuthService()
                                     .getNicknameByLoginAndPassword(token[1], token[2]);
-
+                            login = token[1];
                             if (newNick != null) {
-                                nickname = newNick;
-                                sendMsg(Command.AUTH_OK + " " + nickname);
-                                server.subscribe(this);
-                                System.out.println("client: " + socket.getRemoteSocketAddress() +
-                                        " connected with nick: " + nickname);
-                                break;
+                                if (!server.isLoginAuthenticated(login)) {
+                                    nickname = newNick;
+                                    sendMsg(Command.AUTH_OK + " " + nickname);
+                                    server.subscribe(this);
+                                    System.out.println("client: " + socket.getRemoteSocketAddress() +
+                                            " connected with nick: " + nickname);
+                                    break;
+                                } else {
+                                    sendMsg("Данная учетная запись уже используется");
+                                }
                             } else {
                                 sendMsg("Неверный логин / пароль");
                             }
 
+                        }
+                        //если команда регистрация
+                        if (str.startsWith(Command.REG)) {
+                            String[] token = str.split("\\s", 4);
+                            if (token.length < 4) {
+                                continue;
+                            }
+                            boolean regSuccess = server.getAuthService()
+                                    .registration(token[1], token[2], token[3]);
+                            if (regSuccess) {
+                                sendMsg(Command.REG_OK);
+                            } else {
+                                sendMsg(Command.REG_NO);
+                            }
                         }
                     }
                     //цикл работы
@@ -102,5 +122,8 @@ public class ClientHandler {
 
     public String getNickname() {
         return nickname;
+    }
+    public String getLogin() {
+        return login;
     }
 }
