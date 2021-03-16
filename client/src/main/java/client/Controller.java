@@ -19,11 +19,13 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.ResourceBundle;
 
 public class Controller implements Initializable {
@@ -53,6 +55,8 @@ public class Controller implements Initializable {
     private Stage stage;
     private Stage regStage;
     private RegController regController;
+    private Object FileInputStream;
+    private Object FileReader;
 
     public void setAuthenticated(boolean authenticated) {
         this.authenticated = authenticated;
@@ -108,17 +112,20 @@ public class Controller implements Initializable {
                                 String[] token = str.split("\\s");
                                 nickname = token[1];
                                 setAuthenticated(true);
+                                textArea.appendText(showHistory());
                                 break;
                             }
-                            if(str.equals(Command.REG_OK)){
+                            if (str.equals(Command.REG_OK)) {
                                 regController.setResultTryToReg(Command.REG_OK);
                             }
 
-                            if(str.equals(Command.REG_NO)){
+                            if (str.equals(Command.REG_NO)) {
                                 regController.setResultTryToReg(Command.REG_NO);
                             }
                         } else {
+
                             textArea.appendText(str + "\n");
+
                         }
                     }
                     //цикл работы
@@ -132,9 +139,9 @@ public class Controller implements Initializable {
                             }
                             if (str.startsWith(Command.CLIENT_LIST)) {
                                 String[] token = str.split("\\s");
-                                Platform.runLater(()->{
+                                Platform.runLater(() -> {
                                     clientList.getItems().clear();
-                                    for (int i=1; i<token.length;i++) {
+                                    for (int i = 1; i < token.length; i++) {
                                         clientList.getItems().add(token[i]);
                                     }
 
@@ -142,11 +149,12 @@ public class Controller implements Initializable {
                             }
                             if (str.startsWith(Command.NICKISCHANGED)) {
                                 String[] token = str.split("\\s");
-                                nickname=token[1];
+                                nickname = token[1];
                                 setTitle(nickname);
                             }
-                        }else {
+                        } else {
                             textArea.appendText(str + "\n");
+                            writeToHistory(str);
                         }
                     }
 
@@ -204,6 +212,7 @@ public class Controller implements Initializable {
             }
         });
     }
+
     public void clientListMouseReleased(MouseEvent mouseEvent) {
         System.out.println(clientList.getSelectionModel().getSelectedItem());
         String msg = String.format("%s %s ", Command.DIRECT, clientList.getSelectionModel().getSelectedItem());
@@ -236,7 +245,7 @@ public class Controller implements Initializable {
         }
     }
 
-    public void registration(String login, String password, String nickname){
+    public void registration(String login, String password, String nickname) {
         if (socket == null || socket.isClosed()) {
             connect();
         }
@@ -246,4 +255,39 @@ public class Controller implements Initializable {
             e.printStackTrace();
         }
     }
+
+    public void writeToHistory(String msg) {
+        try {
+            PrintWriter addHistory = new PrintWriter(new FileOutputStream("history/history_" + nickname + ".txt", true), true);
+            addHistory.println(msg);
+            addHistory.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public String showHistory() {
+        if (Files.exists(Paths.get("history/history_" + nickname + ".txt"))) {
+            StringBuilder sb = new StringBuilder();
+            try {
+                List<String> history = Files.readAllLines(Paths.get("history/history_" + nickname + ".txt"));
+                int xLines = 100;
+                if (history.size() > xLines) {
+                    for (int i = history.size()-xLines; i <history.size() ; i++) {
+                        sb.append(history.get(i)+"\n");
+                    }
+                  } else {
+                    for (int i = 0; i <history.size() ; i++) {
+                        sb.append(history.get(i)+"\n");
+                    }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return sb.toString();
+        }
+        return " ";
+
+    }
+
 }
