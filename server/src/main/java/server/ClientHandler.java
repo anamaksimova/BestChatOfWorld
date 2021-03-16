@@ -94,6 +94,20 @@ public class ClientHandler {
                                 }
                                 server.directMsg(this, token[1], token[2]);
                             }
+                            if (str.startsWith(Command.CH_NICK)) {
+                                String[] token = str.split("\\s", 2);
+                                if (token.length < 2) {
+                                    continue;
+                                }
+                                if (server.getAuthService().changeNickname(this.nickname, token[1])) {
+                                sendMsg("Вы сменили ник с " + this.nickname+ " на " + token[1]);
+                                sendMsg(Command.NICKISCHANGED+token[1]);
+                                this.nickname=token[1];
+                                server.broadcastClientlist();
+                                } else {
+                                    sendMsg("Невозможно сменить Nickname,\nпользователь с таким Nickname уже существует");
+                                }
+                                }
                         } else {
 
                             server.broadcastMsg(this, str);

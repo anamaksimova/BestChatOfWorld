@@ -7,6 +7,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -22,11 +23,24 @@ public class Server {
 
     public Server() {
         clients = new CopyOnWriteArrayList<>();
-        authService = new SimpleAuthServise();
+        //authService = new SimpleAuthServise();
+        try {DataBaseAuthServise.connect();
+            System.out.println("DB is connected");
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        try {
+            DataBaseAuthServise.prepareAllStatements();
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+        authService = new DataBaseAuthServise();
 
         try {
             server = new ServerSocket(PORT);
-            System.out.println("Server started");
+            System.out.println("Server is started");
 
             while (true) {
                 socket = server.accept();
@@ -38,6 +52,7 @@ public class Server {
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
+            DataBaseAuthServise.disconnect();
             try {
                 socket.close();
             } catch (IOException e) {
