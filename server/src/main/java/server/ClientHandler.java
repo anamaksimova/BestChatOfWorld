@@ -7,6 +7,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ClientHandler {
     private Server server;
@@ -23,8 +25,16 @@ public class ClientHandler {
             this.socket = socket;
             in = new DataInputStream(socket.getInputStream());
             out = new DataOutputStream(socket.getOutputStream());
-
-            new Thread(() -> {
+            /* Если реализовать Executors.newFixedThreadPool(10), по моей логике, если будет больше 10 клиентов они
+            будут ждать свою очередь и видимо не зайдут в чат. Executors.newCachedThreadPool()не имеет ограничения
+            сверху (помимо возможностей компьютера), и можно попробовать его сделать.
+            Более масштабные идеи мне пока не приходят в голову. Решила попробовать  Executors.newFixedThreadPool(2),
+            действительно открылось 2 окна, а третье открылось, но ввод пароля не прошел. При первоначальной реализации
+            Executors.newFixedThreadPool(2)в самом клиент хэндлере (а не на Server) окна продолжали открываться и
+            заходить и после 2. Почему? Переделала на нужный вариант.
+             */
+           // new Thread(() -> {
+            server.getExecutorService().execute(() -> {
                 try {
                     //установка сокет тайм аут
                     socket.setSoTimeout(120000);
@@ -100,21 +110,21 @@ public class ClientHandler {
                                     continue;
                                 }
                                 if (server.getAuthService().changeNickname(this.nickname, token[1])) {
-                                sendMsg("Вы сменили ник с " + this.nickname+ " на " + token[1]);
-                                sendMsg(Command.NICKISCHANGED+token[1]);
-                                this.nickname=token[1];
-                                server.broadcastClientlist();
+                                    sendMsg("Вы сменили ник с " + this.nickname + " на " + token[1]);
+                                    sendMsg(Command.NICKISCHANGED + token[1]);
+                                    this.nickname = token[1];
+                                    server.broadcastClientlist();
                                 } else {
                                     sendMsg("Невозможно сменить Nickname,\nпользователь с таким Nickname уже существует");
                                 }
-                                }
+                            }
                         } else {
 
                             server.broadcastMsg(this, str);
                         }
                     }
-                } catch (SocketTimeoutException e)  {
-                   try {
+                } catch (SocketTimeoutException e) {
+                    try {
                         out.writeUTF(Command.END);
                     } catch (IOException ioException) {
                         ioException.printStackTrace();
@@ -133,7 +143,8 @@ public class ClientHandler {
                         e.printStackTrace();
                     }
                 }
-            }).start();
+                //  }).start();
+            });
         } catch (IOException e) {
             e.printStackTrace();
         }

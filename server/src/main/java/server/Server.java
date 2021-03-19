@@ -10,6 +10,8 @@ import java.net.Socket;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Server {
     private final int PORT = 8189;
@@ -20,8 +22,14 @@ public class Server {
 
     private List<ClientHandler> clients;
     private AuthService authService;
+    private ExecutorService executorService;
+
+    public ExecutorService getExecutorService() {
+        return executorService;
+    }
 
     public Server() {
+        executorService = Executors.newCachedThreadPool();
         clients = new CopyOnWriteArrayList<>();
         //authService = new SimpleAuthServise();
         try {DataBaseAuthServise.connect();
